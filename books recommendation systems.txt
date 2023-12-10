@@ -1,19 +1,36 @@
-from mpl_toolkits.mplot3d import Axes3D
-from sklearn.preprocessing import StandardScaler
-import matplotlib.pyplot as plt # plotting
-import numpy as np # linear algebra
-import os # accessing directory structure
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
-for dirname, _, filenames in os.walk('/books/input'):
-    for filename in filenames:
-nRowsRead = 1000 # specify 'None' if want to read whole file
-# books.csv has 13719 rows in reality, but we are only loading/previewing the first 1000 rows
-df1 = pd.read_csv('/books/input/books.csv', delimiter=',', nrows = nRowsRead)
-df1.dataframeName = 'books.csv'
-nRow, nCol = df1.shape
-print(f'There are {nRow} rows and {nCol} columns')     
-   print(os.path.join(dirname, filename))
-df1.head(5)
-plotPerColumnDistribution(df1, 10, 5)
-plotCorrelationMatrix(df1, 8)
-plotScatterMatrix(df1, 18, 10)
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Load your book dataset (books.csv) with columns: book_id, title, and genre
+df = pd.read_csv('books.csv')
+
+# Initialize TfidfVectorizer
+tfidf = TfidfVectorizer(stop_words='english')
+
+# Fit and transform book data
+book_tfidf = tfidf.fit_transform(df['title'])
+
+# Compute cosine similarity between books
+cosine_sim = cosine_similarity(book_tfidf)
+
+# Define function to get book recommendations based on cosine similarity
+def get_recommendations(book_title, cosine_sim=cosine_sim):
+    # Get index of book from its title
+    idx = df[df['title'] == book_title].index[0]
+
+    # Get the pairwsie similarity scores for all books with that book
+    sim_scores = list(enumerate(cosine_sim[idx]))
+
+    # Sort the books based on the similarity scores
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+
+    # Get the scores of the 10 most similar books
+    sim_scores = sim_scores[1:11]
+
+    # Get the book indices
+    book_indices = [i[0] for i in sim_scores]
+
+    # Return the top 10 most similar books
+    return df['title'].iloc[book_indices]
+print(get_recommendations('To Kill a Mockingbird')
